@@ -1,0 +1,26 @@
+import FreeCAD
+import random
+
+OFFSET_X = 300
+OFFSET_Y = 300
+OFFSET_Z = 300
+
+MAX_OFFSET = 100
+
+def random_placement():
+    return FreeCAD.Vector(
+        random.uniform(OFFSET_X - MAX_OFFSET, OFFSET_X + MAX_OFFSET),
+        random.uniform(OFFSET_Y - MAX_OFFSET, OFFSET_Y + MAX_OFFSET),
+        random.uniform(OFFSET_Z - MAX_OFFSET, OFFSET_Z + MAX_OFFSET)
+    )
+
+doc = FreeCAD.ActiveDocument
+if not doc:
+    print("No active document. Please open a document with an A2plus assembly.")
+    exit()
+
+for obj in doc.Objects:
+	if hasattr(obj, "Shape") and not obj.fixedPosition:
+		obj.Placement = FreeCAD.Placement(random_placement(), obj.Placement.Rotation)
+
+doc.recompute()
