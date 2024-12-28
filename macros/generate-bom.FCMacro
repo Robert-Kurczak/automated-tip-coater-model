@@ -1,6 +1,6 @@
 import FreeCAD
 from collections import Counter
-from dataclasses import dataclass
+import os.path
 
 def getA2pObjects(document):
 	found_objects = []
@@ -11,40 +11,48 @@ def getA2pObjects(document):
 			
 	return found_objects
 
+def getA2pObjectAbsolutePath(obj, doc):
+	if os.path.isfile(obj.sourceFile):
+		return obj.sourceFile
+	else:
+		return f"{os.path.dirname(doc.FileName)}/{obj.sourceFile}"
+
 def resolveSubassemblies(a2p_objects):
 	resolved_parts = []
-	initial_doc = FreeCAD.ActiveDocument
 
+	initial_doc = App.activeDocument()
 	for obj in a2p_objects:
+		obj_path = getA2pObjectAbsolutePath(obj, initial_doc)
+		
+		# TODO, reopening same document produces warnings
+		obj_doc = App.openDocument(obj_path, True)
+		
 		if obj.subassemblyImport:
-			subassembly_path = f"{os.path.dirname(doc.FileName)}/{obj.sourceFile}"
-			sub_doc = App.openDocument(subassembly_path, True)
-			child_objects = getA2pObjects(sub_doc)
+			child_objects = getA2pObjects(obj_doc)
 			resolved_parts += resolveSubassemblies(child_objects)
 		else:
-			resolved_parts.append(obj)
-	
-	App.openDocument(initial_doc.FileName)
+			resolved_parts.append(obj_doc)
+
 	return resolved_parts
 
-@dataclass
 class PartData:
-	quantity: int
+	def __init__(self, part_doc):
+		self.quantity = 1
+		self.type = part_doc.Comment
 
-def parseA2pObjects(a2p_objects):
+def parsePartsToBomEntries(parts):
 	part_count = {}
-	for obj in a2p_objects:
-		part_name = obj.Label[:obj.Label.rindex("_")]
-		
-		if part_name not in part_count:
-			part_count[part_name] = PartData(1)
+	for doc in parts:
+		if doc.Label not in part_count:
+			part_count[doc.Label] = PartData(doc)
 		else:
-			part_count[part_name].quantity += 1
+			part_count[doc.Label].quantity += 1
 			
 	return part_count
 	
 def exportToCsv(parts_dict):
-	file_path = App.activeDocument().FileName
+	doc = App.activeDocument()
+	file_path = doc.FileName
 	file_extension = file_path[file_path.rindex("."):]
 	file_path = doc.FileName.replace(file_extension, "-bom.csv")
 	
@@ -52,12 +60,20 @@ def exportToCsv(parts_dict):
 		for part_name in sorted(parts_dict.keys()):
 			part_data = parts_dict[part_name]
 			
-			file.write(f"{part_name};{part_data.quantity}\n")
-	
+			file.write(f"{part_name};{part_data.type};{part_data.quantity}\n")
+			
+	return file_path
 
-root_doc = FreeCAD.ActiveDocument
+root_doc = App.activeDocument()
 objects = getA2pObjects(root_doc)
 objects = resolveSubassemblies(objects)
-parts = parseA2pObjects(objects)
-exportToCsv(parts)
-							
+parts = parsePartsToBomEntries(objects)
+bom_path = exportToCsv(parts)
+
+root_doc_path = root_doc.FileName
+for doc_name in App.listDocuments():
+	App.closeDocument(doc_name)	
+App.openDocument(root_doc_path)
+
+print(f"Generated {bom_path}")
+					
