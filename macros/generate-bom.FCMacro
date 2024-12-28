@@ -33,12 +33,14 @@ def resolveSubassemblies(a2p_objects):
 		else:
 			resolved_parts.append(obj_doc)
 
+	App.openDocument(initial_doc.FileName)
 	return resolved_parts
 
 class PartData:
 	def __init__(self, part_doc):
 		self.quantity = 1
-		self.type = part_doc.Comment
+		self.notes = part_doc.Comment
+		self.type = part_doc.CreatedBy
 
 def parsePartsToBomEntries(parts):
 	part_count = {}
@@ -57,10 +59,12 @@ def exportToCsv(parts_dict):
 	file_path = doc.FileName.replace(file_extension, "-bom.csv")
 	
 	with open(file_path, "w") as file:
+		file.write("Name;Type;Notes;Quantity;Price per item [PLN]; Total price [PLN]\n")
+
 		for part_name in sorted(parts_dict.keys()):
 			part_data = parts_dict[part_name]
 			
-			file.write(f"{part_name};{part_data.type};{part_data.quantity}\n")
+			file.write(f"{part_name};{part_data.type};{part_data.notes};{part_data.quantity};;\n")
 			
 	return file_path
 
