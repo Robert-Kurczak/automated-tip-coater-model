@@ -59,12 +59,14 @@ def exportToCsv(parts_dict):
 	file_path = doc.FileName.replace(file_extension, "-bom.csv")
 	
 	with open(file_path, "w") as file:
-		file.write("Name;Type;Notes;Quantity;Price per item [PLN]; Total price [PLN]\n")
+		file.write("Name;Type;Notes;Quantity;Link;Price per item [PLN]; Total price [PLN]\n")
+		
+		sorted_parts = sorted(parts_dict.items(), key=lambda item: (item[1].type, item[0]))
 
-		for part_name in sorted(parts_dict.keys()):
+		for part_name, part_data in sorted_parts:
 			part_data = parts_dict[part_name]
 			
-			file.write(f"{part_name};{part_data.type};{part_data.notes};{part_data.quantity};;\n")
+			file.write(f"{part_name};{part_data.type};{part_data.notes};{part_data.quantity};;;\n")
 			
 	return file_path
 
