@@ -1,0 +1,103 @@
+"""
+Export all print parts to step files
+"""
+
+import os
+from pathlib import Path
+
+SCRIPT_PATH: Path = Path(os.path.realpath(__file__))
+ROOT_PATH: Path = SCRIPT_PATH.parent.parent
+
+MODULES_DIRECTORIES = [
+    ROOT_PATH.joinpath("display-module"),
+    ROOT_PATH.joinpath("heater-module"),
+    ROOT_PATH.joinpath("rotation-module"),
+    ROOT_PATH.joinpath("x-axis"),
+    ROOT_PATH.joinpath("z-axis"),
+]
+
+EXPORT_DIRECTORY_NAME = "prints"
+
+IGNORED_FILE_NAMES = [
+    "z-axis-tr8x2-lead-screw.FCStd",
+    "z-axis-8mm-linear-shaft.FCStd",
+    "x-axis-gt2-timing-belt.FCStd",
+    "x-axis-8mm-linear-shaft.FCStd",
+    "heater-module-hotend-tray.FCStd",
+    "heater-module-lw980-heater-tray.FCStd",
+    "heater-module-gt2-timing-belt.FCStd",
+    "heater-module-8mm-linear-shaft.FCStd",
+]
+
+
+def clean_export_directory(export_directory: Path):
+    """
+        Clean previously exported files.
+        Create export directory if missing.    
+    """
+
+    if not export_directory.exists():
+        os.makedirs(export_directory)
+        return
+
+    for part in export_directory.iterdir():
+        is_step = part.suffix == ".step"
+
+        if is_step:
+            os.remove(part)
+
+
+def get_module_parts(module_path: Path) -> list[Path]:
+    """
+        Get given module parts to export.
+    """
+
+    result = []
+
+    for part in module_path.iterdir():
+        is_not_ignored = part.name not in IGNORED_FILE_NAMES
+        is_part = part.suffix == ".FCStd"
+
+        if is_not_ignored and is_part:
+            result.append(part)
+
+    return result
+
+
+def export_module_parts(parts: list[Path], export_directory: Path):
+    """
+    Export given parts to step files.
+    """
+
+    for part in parts:
+        export_path = export_directory.joinpath(part.stem + ".step")
+
+        part_document = App.openDocument(part.as_posix())
+        part_document.recompute()
+
+        for part_object in part_document.Objects:
+            is_body = (
+                hasattr(part_object, "TypeId")
+                and part_object.TypeId == "PartDesign::Body"
+            )
+
+            if is_body:
+                Part.export([part_object], export_path.as_posix())
+                break
+
+        App.closeDocument(part_document.Name)
+        App.Console.PrintMessage(f"Exported {export_path}\n")
+
+
+def main():
+    "Main function"
+
+    for module in MODULES_DIRECTORIES:
+        export_directory = module.joinpath(EXPORT_DIRECTORY_NAME)
+
+        clean_export_directory(export_directory)
+        parts = get_module_parts(module)
+        export_module_parts(parts, export_directory)
+
+
+main()
