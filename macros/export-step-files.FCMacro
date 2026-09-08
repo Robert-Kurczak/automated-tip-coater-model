@@ -25,6 +25,7 @@ IGNORED_FILE_NAMES = [
     "x-axis-gt2-timing-belt.FCStd",
     "x-axis-8mm-linear-shaft.FCStd",
     "heater-module-hotend-tray.FCStd",
+    "heater-module-tray-cap.step.FCStd",
     "heater-module-lw980-heater-tray.FCStd",
     "heater-module-gt2-timing-belt.FCStd",
     "heater-module-8mm-linear-shaft.FCStd",
@@ -33,8 +34,8 @@ IGNORED_FILE_NAMES = [
 
 def clean_export_directory(export_directory: Path):
     """
-        Clean previously exported files.
-        Create export directory if missing.    
+    Clean previously exported files.
+    Create export directory if missing.
     """
 
     if not export_directory.exists():
@@ -50,7 +51,7 @@ def clean_export_directory(export_directory: Path):
 
 def get_module_parts(module_path: Path) -> list[Path]:
     """
-        Get given module parts to export.
+    Get given module parts to export.
     """
 
     result = []
